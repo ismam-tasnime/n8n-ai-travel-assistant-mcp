@@ -9,7 +9,7 @@ Each data source is its own MCP (Model Context Protocol) server, built as a sepa
 ## Contents
 
 1. [Why MCP](#why-mcp)
-2. [Architecture](#architecture)
+2. [How it fits together](#how-it-fits-together)
 3. [Repository layout](#repository-layout)
 4. [The agent workflow](#the-agent-workflow)
 5. [The four MCP servers](#the-four-mcp-servers)
@@ -27,30 +27,20 @@ MCP gives the model a standard way to call outside tools while it's answering. E
 
 Splitting the tools into separate MCP servers also keeps things tidy. Each server is a two-node workflow that can be tested, activated, and fixed on its own, and any MCP-compatible client (not only this agent) can connect to it.
 
-## Architecture
+## How it fits together
 
-```mermaid
-flowchart LR
-    U([User]) --> CT[When chat message received]
-    CT --> AG[AI Agent]
-    LLM[Groq Chat Model<br/>llama-3.3-70b-versatile] -.-> AG
-    MEM[(Postgres Chat Memory<br/>Supabase)] -.-> AG
+A message typed into the chat goes to the AI Agent. Before the agent does anything, it loads the last 10 exchanges of the conversation from Postgres, so it knows what the user already said about budget, food, or travel style.
 
-    AG -.-> WC[Weather Client]
-    AG -.-> PC[Places Client]
-    AG -.-> HC[Hotel Client]
-    AG -.-> CC[Currency Client]
+The agent then sends the message to the Groq model along with a short description of every tool it can use. Those tools don't live in this workflow. They come from four MCP Client nodes, and each client is connected to a separate n8n workflow running an MCP Server Trigger. When the agent starts, each client asks its server what tools it offers, and the server answers with the tool's name, description, and input schema.
 
-    WC -- SSE --> WS[Weather MCP Server<br/>get_weather]
-    PC -- SSE --> PS[Places MCP Server<br/>search_places]
-    HC -- SSE --> HS[Hotel MCP Server<br/>check_hotel_availability]
-    CC -- SSE --> CS[Currency MCP Server<br/>get_exchange_rate]
+From there the model decides what it needs. A question about Kathmandu might need all four tools. A question about the weather in Sylhet only needs one. For each tool call, the client sends the request to its server over SSE, the server runs its Code Tool, and the result travels back the same way:
 
-    WS --> OWM[(OpenWeatherMap API)]
-    PS --> GEO[(Geoapify API)]
-    HS --> DATA[(Built-in dataset<br/>120 hotels)]
-    CS --> ER[(open.er-api.com)]
-```
+- The weather server asks OpenWeatherMap for coordinates and then the current conditions.
+- The places server asks Geoapify for coordinates and then the sights or restaurants within 5 km.
+- The hotel server doesn't go online at all. It filters its own list of 120 hotels.
+- The currency server asks open.er-api.com for the latest rates.
+
+Once the tool results are in, the model writes one answer from all of them, the exchange is saved back to Postgres, and the reply appears in the chat.
 
 There are five workflows in total:
 
