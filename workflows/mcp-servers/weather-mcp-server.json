@@ -1,0 +1,61 @@
+{
+  "name": "Weather MCP Server",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "77e6cfd1-e128-4ec2-af60-184aa6d57cf6"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e837be02-4f76-4bef-aac3-21f8915471dd",
+      "name": "Weather MCP Server",
+      "webhookId": "77e6cfd1-e128-4ec2-af60-184aa6d57cf6"
+    },
+    {
+      "parameters": {
+        "description": "Get current weather for a travel destination. Provide the city or place name.",
+        "jsCode": "const location = query.location;\n\nif (!location || typeof location !== 'string') {\n  return \"দুঃখিত, সঠিক location পাওয়া যায়নি।\";\n}\n\nconst apiKey = \"YOUR_OPENWEATHERMAP_API_KEY\";\n\nconst geoUrl = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(location)}&limit=1&appid=${apiKey}`;\nconst geoResponse = await this.helpers.httpRequest({\n  method: 'GET',\n  url: geoUrl,\n  json: true\n});\n\nif (!geoResponse || geoResponse.length === 0) {\n  return `Location \"${location}\" খুঁজে পাওয়া যায়নি।`;\n}\n\nconst { lat, lon } = geoResponse[0];\n\nconst weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;\nconst weatherResponse = await this.helpers.httpRequest({\n  method: 'GET',\n  url: weatherUrl,\n  json: true\n});\n\nreturn JSON.stringify({\n  location: location,\n  temperature: weatherResponse.main.temp,\n  feels_like: weatherResponse.main.feels_like,\n  description: weatherResponse.weather[0].description,\n  humidity: weatherResponse.main.humidity,\n  wind_speed: weatherResponse.wind.speed\n});",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"location\": {\n      \"type\": \"string\",\n      \"description\": \"City or place name, e.g. Cox's Bazar\"\n    }\n  },\n  \"required\": [\"location\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        80,
+        224
+      ],
+      "id": "e2b4dcbe-db20-48dc-a071-2f2fde15c01f",
+      "name": "get_weather"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "get_weather": {
+      "ai_tool": [
+        [
+          {
+            "node": "Weather MCP Server",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}

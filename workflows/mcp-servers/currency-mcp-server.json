@@ -1,0 +1,61 @@
+{
+  "name": "Currency MCP Server",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "b943987e-fed2-40e2-b46d-cacbcf259f2c"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "1de09e5c-b2f0-41d1-a132-becdde657b9d",
+      "name": "MCP Server Trigger",
+      "webhookId": "b943987e-fed2-40e2-b46d-cacbcf259f2c"
+    },
+    {
+      "parameters": {
+        "description": "Get the current currency exchange rate between two currencies. Provide the source currency code and target currency code (e.g. USD to BDT).",
+        "jsCode": "const from = (query.from_currency || \"\").toUpperCase();\nconst to = (query.to_currency || \"\").toUpperCase();\n\nif (!from || !to) {\n  return \"দুঃখিত, currency code পাওয়া যায়নি।\";\n}\n\nconst url = `https://open.er-api.com/v6/latest/${from}`;\nconst response = await this.helpers.httpRequest({\n  method: 'GET',\n  url: url,\n  json: true\n});\n\nif (!response.rates || !response.rates[to]) {\n  return `\"${from}\" থেকে \"${to}\"-তে রূপান্তরের তথ্য পাওয়া যায়নি। সঠিক currency code (যেমন USD, BDT, EUR) ব্যবহার করুন।`;\n}\n\nreturn JSON.stringify({\n  from: from,\n  to: to,\n  rate: response.rates[to],\n  last_updated: response.time_last_update_utc || \"N/A\"\n});",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"from_currency\": {\n      \"type\": \"string\",\n      \"description\": \"Source currency code, e.g. USD\"\n    },\n    \"to_currency\": {\n      \"type\": \"string\",\n      \"description\": \"Target currency code, e.g. BDT\"\n    }\n  },\n  \"required\": [\"from_currency\", \"to_currency\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        96,
+        208
+      ],
+      "id": "c544bb31-a315-452e-8b0c-70a89d30761e",
+      "name": "get_exchange_rate"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "get_exchange_rate": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}

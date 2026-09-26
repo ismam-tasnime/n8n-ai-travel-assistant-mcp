@@ -1,0 +1,61 @@
+{
+  "name": "Places MCP Server",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "73eb61c7-8ae7-4b65-aa87-ccea51ddfaf8"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4ce894d8-512c-4ac9-b57e-3ffd7b8293a9",
+      "name": "MCP Server Trigger",
+      "webhookId": "73eb61c7-8ae7-4b65-aa87-ccea51ddfaf8"
+    },
+    {
+      "parameters": {
+        "description": "Search for tourist attractions or restaurants near a travel destination. \nInput must be a JSON string with two fields: \n{\"location\": \"city or place name\", \"category\": \"attractions or restaurants\"}\nExample: {\"location\": \"Cox's Bazar\", \"category\": \"attractions\"}",
+        "jsCode": "const location = query.location;\nconst category = query.category; // \"attractions\" অথবা \"restaurants\"\nconst apiKey = \"YOUR_GEOAPIFY_API_KEY\";\n\n// ধাপ ১: Geocoding - location name থেকে lat/lon বের করা\nconst geoUrl = `https://api.geoapify.com/v1/geocode/search?text=${encodeURIComponent(location)}&apiKey=${apiKey}`;\nconst geoResponse = await this.helpers.httpRequest({\n  method: 'GET',\n  url: geoUrl,\n  json: true\n});\n\nif (!geoResponse.features || geoResponse.features.length === 0) {\n  return `\"${location}\" এর জন্য কোনো কোঅর্ডিনেট পাওয়া যায়নি।`;\n}\n\nconst [lon, lat] = geoResponse.features[0].geometry.coordinates;\n\n// ধাপ ২: Category ম্যাপ করা\nconst categoryMap = {\n  attractions: 'tourism.sights',\n  restaurants: 'catering.restaurant'\n};\nconst geoapifyCategory = categoryMap[category] || 'tourism.sights';\n\n// ধাপ ৩: Places search\nconst placesUrl = `https://api.geoapify.com/v2/places?categories=${geoapifyCategory}&filter=circle:${lon},${lat},5000&limit=10&apiKey=${apiKey}`;\nconst placesResponse = await this.helpers.httpRequest({\n  method: 'GET',\n  url: placesUrl,\n  json: true\n});\n\nif (!placesResponse.features || placesResponse.features.length === 0) {\n  return `${location}-এ কোনো ${category} পাওয়া যায়নি।`;\n}\n\n// শুধু দরকারি তথ্য বের করে সংক্ষিপ্ত ফলাফল রিটার্ন করা\nconst results = placesResponse.features.map(f => ({\n  name: f.properties.name || \"নাম নেই\",\n  address: f.properties.formatted || \"\",\n  category: f.properties.categories ? f.properties.categories[0] : \"\"\n}));\n\nreturn JSON.stringify(results);",
+        "specifyInputSchema": true,
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"location\": {\n      \"type\": \"string\",\n      \"description\": \"City or place name, e.g. Cox's Bazar\"\n    },\n    \"category\": {\n      \"type\": \"string\",\n      \"description\": \"Either 'attractions' or 'restaurants'\"\n    }\n  },\n  \"required\": [\"location\", \"category\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        96,
+        208
+      ],
+      "id": "51f095da-ccb2-4738-bdf9-ca457b8f8b2d",
+      "name": "search_places"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "search_places": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}
