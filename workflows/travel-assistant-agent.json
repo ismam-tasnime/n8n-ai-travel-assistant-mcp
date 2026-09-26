@@ -1,0 +1,226 @@
+{
+  "name": "Travel Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋\nMy name is Mihad. How can I assist you today?",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "35aec177-29d2-44ff-b177-edffa0770eac",
+      "name": "When chat message received",
+      "webhookId": "234ff60f-432e-4d24-ba5e-ce0cf03b0aee"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a helpful AI Travel Assistant. Before answering any travel query, you must use the relevant MCP tools to gather real, up-to-date information. Never rely on assumptions or your own built-in knowledge for weather, places, hotels, or currency data.\n\nWEATHER:\nWhen weather information is needed, call the get_weather tool with the location name.\n\nPLACES (Attractions & Restaurants):\nWhen the user asks about tourist attractions or restaurants, call the search_places tool with the location name and category (\"attractions\" or \"restaurants\"). Call it once for each category needed.\n\nHOTELS:\nWhen hotel information is needed, call the check_hotel_availability tool with the location name and, if known, the user's budget preference (budget, mid-range, or luxury). If no budget is known, call it with just the location to see all available options.\n\nCURRENCY:\nFor international destinations, call the get_exchange_rate tool with the user's home currency (assume BDT if not specified) and the destination's local currency to provide up-to-date conversion context. Skip this for domestic Bangladeshi destinations.\n\nGENERAL BEHAVIOR:\n- Use whichever tools are relevant to the user's query (weather, places, hotels, currency exchange for international destinations).\n- After gathering all the necessary data, analyze and combine it into a clear, practical, and personalized travel recommendation.\n- Base activity suggestions on the actual weather (e.g., avoid recommending outdoor hiking if rain is expected).\n- Recommend hotels that match the user's stated or remembered budget.\n- Mention specific attraction and restaurant names retrieved from the tools.\n- If the destination is international, include the current currency exchange rate for context.\n\nMEMORY & PERSONALIZATION:\nIf the user has previously shared preferences (budget, hotel type, transportation method, dietary preferences, preferred activities), recall them from memory and apply them automatically to future recommendations without asking again, unless the user wants to change them.\n\nKeep responses well-organized, friendly, and easy to read — use short sections or bullet points where helpful.\n\nReply to this message: {{ $json.chatInput }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        480,
+        0
+      ],
+      "id": "1d8e94b2-3005-422f-b0c8-9c7631eb05c9",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        224,
+        224
+      ],
+      "id": "97cba299-8d0f-4881-ac8f-40d7e204ad69",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.4,
+      "position": [
+        352,
+        224
+      ],
+      "id": "5d2dec6e-7fb6-4be7-a764-93939cebc1ce",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_YOUR_CREDENTIAL",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://YOUR-N8N-INSTANCE.app.n8n.cloud/mcp/77e6cfd1-e128-4ec2-af60-184aa6d57cf6",
+        "serverTransport": "sse",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        480,
+        224
+      ],
+      "id": "9c204e9d-37b8-4435-be3f-c8939d4050c7",
+      "name": "Weather Client"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://YOUR-N8N-INSTANCE.app.n8n.cloud/mcp/73eb61c7-8ae7-4b65-aa87-ccea51ddfaf8",
+        "serverTransport": "sse",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        608,
+        224
+      ],
+      "id": "5908c213-693e-4f89-bb7a-bfb94ad5caed",
+      "name": "Places Client"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://YOUR-N8N-INSTANCE.app.n8n.cloud/mcp/437fe674-30ed-4ee5-ba75-e4b0d5fcea3d",
+        "serverTransport": "sse",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        736,
+        224
+      ],
+      "id": "a58c7418-0c90-4111-b459-ca1da0c19422",
+      "name": "Hotel Client"
+    },
+    {
+      "parameters": {
+        "endpointUrl": "https://YOUR-N8N-INSTANCE.app.n8n.cloud/mcp/b943987e-fed2-40e2-b46d-cacbcf259f2c",
+        "serverTransport": "sse",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpClientTool",
+      "typeVersion": 1.4,
+      "position": [
+        864,
+        224
+      ],
+      "id": "b12082f0-0594-417f-ba63-31803a5e720f",
+      "name": "Currency Client"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weather Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Places Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hotel Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Currency Client": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "nodeGroups": [],
+  "tags": []
+}
